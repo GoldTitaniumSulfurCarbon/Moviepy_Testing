@@ -19,11 +19,3 @@ def FAFO(): #Demonstration with absolute path for ClipEditor
     FAFO.concatenate(FAFO_half)
     FAFO.preview()
 
-
-
-def controlled_op():
-    COP = ClipEditor("E:\Documents\Pixel 6 FTP\Christian Controlled Op Cope on Instagram _ Know More News w_ Adam Green.mp4")
-    FOCUS = COP.crop(begin_time=time_stamp(minutes=22, seconds=10),end_time=time_stamp(minutes=25, seconds=35))
-    #FOCUS_2 = COP.duplicate()
-    FOCUS.save(filename="ericmoutsos_stealing_from_adam_green.mp4")
-controlled_op()
