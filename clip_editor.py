@@ -26,22 +26,25 @@ class ClipEditor:
 
         self.ensure_dirs(self.resource_dir, self.image_dir, self.input_dir, self.font_dir, self.output_dir) #Makes directories
         #Declaring input path
-
+        # If a VideoFileClip is passed, as it does not have a file on storage to be associated with.
         if isinstance(base_clip_filename_or_base_clip, VideoFileClip):
             self.base_clip_path = None
             self.base_clip = base_clip_filename_or_base_clip
-        else:
+            base_name = "clip"
+        else: # If a video path is passed
             self.base_clip_path = resolve_path(base_clip_filename_or_base_clip, base_dir=self.input_dir)
             self.base_clip = VideoFileClip(
                 str(self.base_clip_path)
             )  # Path works, but some weird bugs can occur on Windows with path vs string.
+            base_name = Path(base_clip_filename_or_base_clip).stem
             if not self.base_clip_path.exists():
                 raise FileNotFoundError(self.base_clip_path)
 
         self.clip = self.base_clip #Defining the clip object that is to be mutated over time to not cause bugs with changing duration and time of the clip.
 
+
         #Declaring output path
-        self.output_clip_filename =  f"{datetime.datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}_{base_clip_filename_or_base_clip}"
+        self.output_clip_filename =  f"{datetime.datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}_{base_name}"
         self.output_clip = resolve_path(self.output_clip_filename, base_dir=self.output_dir)
 
 
@@ -81,11 +84,22 @@ class ClipEditor:
         """
         self.clip.preview()
 
-    def save(self, filename=None):
+    def save(self, filename=None, file_format=None):
+        #Trying to get the beginning of file format changing to work.
+        if file_format is None:
+            if self.base_clip_path is not None:
+                file_format = self.base_clip_path.suffix.lstrip(".")
+            else:
+                file_format = "mp4"  # If there is no base_clip_path, assumes type to be .mp4.
+
         if filename is None:
-            self.clip.write_videofile(self.output_clip) #Default name for output
+            base_name = Path(self.output_clip_filename).stem
         else:
-            self.clip.write_videofile(str(resolve_path(filename, base_dir=self.output_dir)))#If a filename is given, use this instead for saving.
+            base_name = Path(filename).stem #If a filename is given, use this instead for saving.
+
+            # Always rebuild full filename with correct extension
+        self.clip.write_videofile(str(resolve_path(f"{base_name}.{file_format}", base_dir=self.output_dir))) #Using the final name and filetype, write a video file to the given path.
+
 
     def crop(self, begin_time, end_time): #Crops the given clip from begin time to end time
         """
