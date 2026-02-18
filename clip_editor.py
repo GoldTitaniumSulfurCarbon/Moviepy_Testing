@@ -19,14 +19,20 @@ class ClipEditor:
       #Initializes the directories, then creates them if they dont already exist.
         self.base_dir = Path(__file__).resolve().parent #Directory where the script is located
         self.resource_dir = self.base_dir / "resources" #Directory where resources (ie: input videos, watermark fonts), go.
-        self.image_dir = self.resource_dir / "images"
+        self.image_dir = self.resource_dir / "images" #Directory where images for watermarks go
         self.font_dir = self.resource_dir / "fonts" #Directory where fonts for watermarks go
         self.input_dir = self.resource_dir / "inputs" #Directory where videos to be edited go
         self.output_dir = self.base_dir / "outputs" #Directory where the edited videos go to.
 
         self.ensure_dirs(self.resource_dir, self.image_dir, self.input_dir, self.font_dir, self.output_dir) #Makes directories
+
         #Declaring input path
         # If a VideoFileClip is passed, as it does not have a file on storage to be associated with.
+        """
+        base_clip_path: Path where the base clip to be edited is, if it exists.
+        base_clip: VideoFileClip object pointing to the original clip/path before being edited.
+        base_name:
+        """
         if isinstance(base_clip_filename_or_base_clip, VideoFileClip):
             self.base_clip_path = None
             self.base_clip = base_clip_filename_or_base_clip
@@ -52,6 +58,11 @@ class ClipEditor:
 
 
     def get_clip_duration(self, base_clip=False):
+        """
+        Returns the duration of the clip passed.
+        :param base_clip: Whether to return the base clip's duration (true) or current clip's duration (False). False by default.
+        :return:
+        """
         return self.base_clip.duration if base_clip else self.clip.duration
 
     def ensure_dirs(self, *dirs: Path | str):
@@ -85,14 +96,20 @@ class ClipEditor:
         self.clip.preview()
 
     def save(self, filename=None, file_format=None):
+        """
+        With a ClipEditor object, saves the video locally to the outputs folder.
+        :param filename: Desired filename for the saved video. Defaults to the ClipEditor's name, and the exact timeframe it was saved.
+        :param file_format: Desired file format for the saved video. Defaults to ClipEditor's input file's filetype if exists, otherwise defaults to .mp4.
+        """
         #Trying to get the beginning of file format changing to work.
-        if file_format is None:
-            if self.base_clip_path is not None:
+        if file_format is None: #No file format specified
+            if self.base_clip_path is not None: #If the ClipEditor object passed has a path, uses that extension. Else, defaults to mp4.
                 file_format = self.base_clip_path.suffix.lstrip(".")
             else:
                 file_format = "mp4"  # If there is no base_clip_path, assumes type to be .mp4.
+        file_format = file_format.lstrip(".") #".mp4" works alongside "mp4" to prevent breaks.
 
-        if filename is None:
+        if filename is None: #Handles filenames.
             base_name = Path(self.output_clip_filename).stem
         else:
             base_name = Path(filename).stem #If a filename is given, use this instead for saving.
@@ -109,6 +126,33 @@ class ClipEditor:
         """
         self.clip = self.clip.subclipped(begin_time, end_time)
         return self
+
+    def crop_frame(self, xi=None, xf=None, yi=None, yf=None, #Absolute coordinates
+                   center=False, width=None, height=None): #Relative to center
+        """
+        Takes a clip
+        :param xi: Leftmost pixel to begin crop
+        :param xf: Rightmost pixel to stop crop
+        :param yi: Upmost pixel to begin crop
+        :param yf: Downost pixel to end crop
+        :param center: If to crop from center or use absolute coordinates. Defaults to false
+        :param width: Width of crop if cropping with center.
+        :param height: Height of crop if cropping to center.
+        :return:
+        """
+        if center and width and height:
+            self.clip = self.clip.cropped(
+                width=width, height=height,
+                x_center=self.clip.w//2, y_center= self.clip.h//2)
+        else:
+            self.clip = self.clip.cropped(
+                x1= xi, x2 = xf,
+                y1 = yi, y2 = yf
+            )
+        return self
+
+
+
     def concatenate(self,clip_to_concat):
         """
         :param clip_to_concat: Clip or ClipEditor to append to the end of the input clip. If a ClipEditor object is passed, it will take its clip attribute and set that as the clip to be concatenated.
